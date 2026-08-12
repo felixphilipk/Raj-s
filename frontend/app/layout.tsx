@@ -1,0 +1,1 @@
+import './globals.css';export const metadata={title:'DriveBook',description:'Driving lesson booking and progress'};export default function RootLayout({children}:{children:React.ReactNode}){return <html lang="en"><body>{children}</body></html>}

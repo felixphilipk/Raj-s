@@ -1,0 +1,37 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: drivebook
+      POSTGRES_USER: drivebook
+      POSTGRES_PASSWORD: drivebook
+    ports: ["5432:5432"]
+    volumes: ["drivebook_pg:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL","pg_isready -U drivebook"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+  backend:
+    build: ./backend
+    environment:
+      DATABASE_URL: postgresql+psycopg://drivebook:drivebook@db:5432/drivebook
+      JWT_SECRET: local-development-secret-change-me
+      FRONTEND_URL: http://localhost:3000
+      CORS_ORIGINS: http://localhost:3000
+      PAYMENTS_MODE: demo
+      SMTP_MODE: console
+    ports: ["8000:8000"]
+    depends_on:
+      db: {condition: service_healthy}
+    volumes: ["./backend/app:/app/app"]
+  frontend:
+    build: ./frontend
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:8000
+      NEXT_PUBLIC_WS_URL: ws://localhost:8000
+    ports: ["3000:3000"]
+    depends_on: [backend]
+    volumes: ["./frontend:/app","/app/node_modules"]
+volumes:
+  drivebook_pg:
