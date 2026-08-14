@@ -110,7 +110,12 @@ export const user = () => { try { return typeof window === 'undefined' ? null : 
 export async function api(path: string, opts: RequestInit = {}) {
   if (demoMode()) return demoApi(path, opts);
   const headers = new Headers(opts.headers); headers.set('Content-Type', 'application/json'); const currentToken = token(); if (currentToken) headers.set('Authorization', `Bearer ${currentToken}`);
-  const response = await fetch(`${API}${path}`, { ...opts, headers, cache: 'no-store' });
+  let response: Response;
+  try {
+    response = await fetch(`${API}${path}`, { ...opts, headers, cache: 'no-store' });
+  } catch {
+    throw new Error('The booking server is unavailable. Start the backend and database, then try again.');
+  }
   if (!response.ok) { let message = 'Request failed'; try { message = (await response.json()).detail || message; } catch {} throw new Error(message); }
   return response.status === 204 ? null : response.json();
 }
