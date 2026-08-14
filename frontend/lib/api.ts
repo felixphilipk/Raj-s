@@ -3,7 +3,7 @@ export const API = process.env.NEXT_PUBLIC_API_URL || '';
 type DemoUser = { id: number; email: string; password: string; first_name: string; last_name: string; phone?: string; role: 'student' | 'instructor' };
 type DemoState = { users: DemoUser[]; availability: any[]; bookings: any[]; feedback: any[]; notifications: any[]; nextId: number };
 
-const demoMode = () => typeof window !== 'undefined' && (process.env.NEXT_PUBLIC_DEMO_MODE === 'true' || !API);
+const demoMode = () => typeof window !== 'undefined' && process.env.NEXT_PUBLIC_DEMO_MODE === 'true';
 const stateKey = 'drivebook-demo-state';
 const defaultState = (): DemoState => {
   const now = new Date();
@@ -107,6 +107,7 @@ export const user = () => { try { return typeof window === 'undefined' ? null : 
 
 export async function api(path: string, opts: RequestInit = {}) {
   if (demoMode()) return demoApi(path, opts);
+  if (!API) throw new Error('The booking service is not configured. Please contact Raj Instructor support.');
   const headers = new Headers(opts.headers); headers.set('Content-Type', 'application/json'); const currentToken = token(); if (currentToken) headers.set('Authorization', `Bearer ${currentToken}`);
   const response = await fetch(`${API}${path}`, { ...opts, headers, cache: 'no-store' });
   if (!response.ok) { let message = 'Request failed'; try { message = (await response.json()).detail || message; } catch {} throw new Error(message); }

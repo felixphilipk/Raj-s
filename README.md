@@ -1,18 +1,18 @@
 # DriveBook – Driving Lesson Booking Application
 
-DriveBook is a complete full-stack starter for a driving-school booking portal. It uses **Next.js + React + Tailwind CSS** for the frontend, **FastAPI** for the API, and **PostgreSQL** for persistence.
+Raj Instructor is a full-stack driving-school portal for Auckland. It includes an SEO-ready public landing page, distinct learner and instructor workspaces, online booking, structured progress reports, Stripe Checkout and transactional notifications.
 
 ## Included features
 
-- Learner registration and login with JWT authentication
+- Separate learner and instructor registration with JWT authentication
 - Instructor role and instructor profile fields for photo, expertise, services, vehicle, language and teaching area
-- Weekly availability and one-click lesson booking
+- Instructor-managed availability, protected booking holds and one-click lesson booking
 - Stripe Checkout integration for real payments, plus a safe `demo` payment mode for local/client demos
 - Booking history and payment/booking statuses
 - Instructor feedback workflow after lessons
 - Structured 1–10 skill metrics grouped into introduction, intermediate and advanced driving skills
 - Lesson-by-lesson feedback pagination. A page exists for each booked lesson even before feedback has been submitted
-- Email notifications (SMTP in production, console output locally)
+- Registration, booking, payment, student lesson-reminder and instructor feedback-reminder email flows
 - In-app notifications with deep links to the relevant booking/feedback page
 - WebSocket notification delivery for real-time UI updates
 - Light/white theme only
@@ -67,6 +67,8 @@ POST https://your-api-domain/payments/stripe/webhook
 
 Subscribe to `checkout.session.completed`. Keep the webhook signing secret private.
 
+The webhook handler records Stripe event IDs so Stripe retries are idempotent. Do not confirm a payment from the browser redirect; Stripe's signed webhook is the source of truth.
+
 For local Stripe testing, Stripe CLI can forward events to `localhost:8000/payments/stripe/webhook`.
 
 ## Email
@@ -82,15 +84,28 @@ SMTP_PASSWORD=...
 SMTP_FROM=lessons@yourdomain.com
 ```
 
+To run scheduled reminders, set a long random `REMINDER_SECRET`, then have your hosting scheduler call this endpoint at least every 15 minutes:
+
+```text
+POST https://your-api-domain/internal/reminders/run
+X-Reminder-Secret: <REMINDER_SECRET>
+```
+
+The endpoint sends one student reminder within the configured pre-lesson window and one instructor reminder after a confirmed lesson ends. Each delivery is recorded so scheduled retries do not send duplicates.
+
+## Database migrations
+
+The backend image runs `alembic upgrade head` before serving traffic. For an existing starter database that was created before migrations, back it up, then either migrate it through an approved compatibility migration or stamp the matching initial revision only after confirming its schema. Do not use `create_all` in production.
+
 ## Production deployment
 
 A practical split is:
 
-- Frontend: Vercel or another Next.js host
-- Backend: Render, Fly.io, Railway, AWS, Azure or another container host
+- Frontend: any Next.js host
+- Backend: any container host with a scheduler/cron capability
 - Database: managed PostgreSQL
 
-Set `NEXT_PUBLIC_API_URL` and `NEXT_PUBLIC_WS_URL` on the frontend to the public backend URLs. Set `CORS_ORIGINS` on the backend to your frontend origin. Use a strong random `JWT_SECRET`.
+Set `NEXT_PUBLIC_API_URL` and `NEXT_PUBLIC_WS_URL` on the frontend to the public backend URLs. Set `CORS_ORIGINS` on the backend to your frontend origin. Use a strong random `JWT_SECRET`, real Stripe keys/webhook secret, SMTP credentials, and a `REMINDER_SECRET`. Never set `NEXT_PUBLIC_DEMO_MODE=true` in production.
 
 For a single-server deployment, both Docker images can be deployed behind a reverse proxy such as Caddy or Nginx, with PostgreSQL either managed or containerized.
 

@@ -15,6 +15,11 @@ class Settings(BaseSettings):
     smtp_username: str = ""
     smtp_password: str = ""
     smtp_from: str = "no-reply@example.com"
+    smtp_use_tls: bool = True
+    reminder_secret: str = ""
+    reminder_hours_before: int = 24
+    feedback_reminder_minutes_after: int = 30
+    booking_hold_minutes: int = 30
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
 settings = Settings()

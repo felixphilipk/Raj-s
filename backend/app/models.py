@@ -1,5 +1,5 @@
 from datetime import datetime
-from sqlalchemy import String, Integer, DateTime, ForeignKey, Text, Boolean, Numeric, UniqueConstraint
+from sqlalchemy import String, Integer, DateTime, ForeignKey, Text, Boolean, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from .database import Base
 
@@ -26,6 +26,8 @@ class InstructorProfile(Base):
     languages: Mapped[str] = mapped_column(String(255), default="English")
     image_url: Mapped[str] = mapped_column(String(500), default="/instructor-placeholder.svg")
     lesson_price_cents: Mapped[int] = mapped_column(Integer, default=9000)
+    licence_number: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    is_accepting_bookings: Mapped[bool] = mapped_column(Boolean, default=True)
     user = relationship("User")
 
 class Availability(Base):
@@ -46,6 +48,8 @@ class Booking(Base):
     status: Mapped[str] = mapped_column(String(30), default="pending_payment")
     payment_status: Mapped[str] = mapped_column(String(30), default="unpaid")
     stripe_session_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    payment_reference: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    payment_expires_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     amount_cents: Mapped[int] = mapped_column(Integer, default=9000)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
@@ -70,3 +74,19 @@ class Notification(Base):
     link: Mapped[str] = mapped_column(String(500), default="/dashboard")
     is_read: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+class PaymentEvent(Base):
+    __tablename__ = "payment_events"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    provider_event_id: Mapped[str] = mapped_column(String(255), unique=True, index=True)
+    event_type: Mapped[str] = mapped_column(String(120))
+    received_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+class Delivery(Base):
+    __tablename__ = "deliveries"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    booking_id: Mapped[int | None] = mapped_column(ForeignKey("bookings.id"), nullable=True, index=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    kind: Mapped[str] = mapped_column(String(100))
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    __table_args__ = (UniqueConstraint("booking_id", "user_id", "kind", name="uq_delivery_once"),)
