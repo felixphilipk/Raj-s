@@ -1,6 +1,6 @@
 import json
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 import stripe
@@ -95,6 +95,12 @@ def expire_unpaid_hold(db: Session, slot: Availability) -> None:
         slot.is_booked = False
         db.commit()
 
+def utc_naive(value: datetime) -> datetime:
+    """Store API timestamps consistently with the database's UTC-naive columns."""
+    if value.tzinfo is None:
+        return value
+    return value.astimezone(timezone.utc).replace(tzinfo=None)
+
 @app.get("/health")
 def health() -> dict[str, str]:
     return {"status": "ok"}
@@ -158,9 +164,11 @@ def own_availability(db: Session = Depends(get_db), account: User = Depends(requ
 
 @app.post("/instructor/availability")
 def add_slot(data: SlotIn, db: Session = Depends(get_db), account: User = Depends(require_role("instructor", "admin"))):
-    if data.starts_at < datetime.utcnow() or data.ends_at <= data.starts_at or data.ends_at - data.starts_at > timedelta(hours=4):
+    starts_at = utc_naive(data.starts_at)
+    ends_at = utc_naive(data.ends_at)
+    if starts_at < datetime.utcnow() or ends_at <= starts_at or ends_at - starts_at > timedelta(hours=4):
         raise HTTPException(400, "Choose a future availability period of up to four hours")
-    slot = Availability(instructor_id=account.id, starts_at=data.starts_at, ends_at=data.ends_at)
+    slot = Availability(instructor_id=account.id, starts_at=starts_at, ends_at=ends_at)
     db.add(slot)
     try:
         db.commit()
