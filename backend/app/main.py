@@ -296,9 +296,6 @@ async def submit_feedback(booking_id: int, data: FeedbackIn, db: Session = Depen
         raise HTTPException(404, "Booking not found")
     if booking.status not in {"confirmed", "completed"}:
         raise HTTPException(409, "Feedback can only be submitted for a confirmed lesson")
-    slot = db.get(Availability, booking.availability_id)
-    if slot.ends_at > datetime.utcnow():
-        raise HTTPException(409, "Feedback can be submitted after the lesson has ended")
     if db.scalar(select(Feedback).where(Feedback.booking_id == booking_id)):
         raise HTTPException(409, "Feedback has already been submitted")
     feedback = Feedback(booking_id=booking.id, student_id=booking.student_id, instructor_id=booking.instructor_id, lesson_summary=data.lesson_summary, agreed_practice=data.agreed_practice, further_notes=data.further_notes, metrics_json=json.dumps(data.metrics))
@@ -306,7 +303,7 @@ async def submit_feedback(booking_id: int, data: FeedbackIn, db: Session = Depen
     db.add(feedback)
     db.commit()
     student = db.get(User, booking.student_id)
-    notice = notify(db, student, "New lesson feedback", "Your instructor has submitted your driving lesson feedback report.", f"/feedback?booking={booking.id}")
+    notice = notify(db, student, "New lesson feedback", "Your instructor has shared your driving lesson feedback report.", f"/feedback?booking={booking.id}")
     await push(student.id, {"type": "notification", "id": notice.id, "title": notice.title, "body": notice.body, "link": notice.link})
     return {"id": feedback.id}
 
@@ -319,7 +316,7 @@ def feedback(db: Session = Depends(get_db), account: User = Depends(current_user
     for booking in db.scalars(query.order_by(Booking.created_at.asc())).all():
         view = booking_view(db, booking)
         report = db.scalar(select(Feedback).where(Feedback.booking_id == booking.id))
-        rows.append({"booking_id": booking.id, "starts_at": view["starts_at"], "instructor_name": view["instructor_name"], "student_name": view["student_name"], "status": "submitted" if report else "pending", "lesson_summary": report.lesson_summary if report else "Feedback will appear here after the lesson.", "agreed_practice": report.agreed_practice if report else "", "further_notes": report.further_notes if report else "", "metrics": json.loads(report.metrics_json) if report else {}})
+        rows.append({"booking_id": booking.id, "starts_at": view["starts_at"], "instructor_name": view["instructor_name"], "student_name": view["student_name"], "status": "submitted" if report else "pending", "lesson_summary": report.lesson_summary if report else "No feedback report has been submitted yet.", "agreed_practice": report.agreed_practice if report else "", "further_notes": report.further_notes if report else "", "metrics": json.loads(report.metrics_json) if report else {}})
     return rows
 
 @app.get("/notifications")
