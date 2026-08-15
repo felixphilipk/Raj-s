@@ -99,6 +99,41 @@ The backend image runs `alembic upgrade head` before serving traffic. For an exi
 
 ## Production deployment
 
+### Vercel deployment
+
+Deploy two Vercel projects from this repository:
+
+- The existing frontend project has **Root Directory** `frontend`.
+- Create a backend project with **Root Directory** `backend`; Vercel detects the FastAPI `main.py` entrypoint.
+
+Attach a Vercel Marketplace Postgres integration (for example Neon) to the backend project, then configure the following backend Production environment variables:
+
+```env
+# Set by the Postgres integration, or provide the database connection yourself.
+POSTGRES_URL=postgresql://...
+JWT_SECRET=<long-random-value>
+FRONTEND_URL=https://your-frontend-domain.vercel.app
+CORS_ORIGINS=https://your-frontend-domain.vercel.app
+REMINDER_SECRET=<long-random-value>
+CRON_SECRET=<same-value-as-REMINDER_SECRET>
+SMTP_MODE=smtp
+SMTP_HOST=...
+SMTP_PORT=587
+SMTP_USERNAME=...
+SMTP_PASSWORD=...
+SMTP_FROM=...
+```
+
+Set the following frontend Production environment values after the backend is deployed:
+
+```env
+NEXT_PUBLIC_API_URL=https://your-backend-domain.vercel.app
+```
+
+The frontend uses normal HTTP API requests in production. The backend cron configuration invokes the reminder route hourly using `CRON_SECRET`.
+
+Vercel runs the Alembic migration during the backend build. Back up an existing database before its first deployment.
+
 A practical split is:
 
 - Frontend: any Next.js host

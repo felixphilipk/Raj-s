@@ -1,0 +1,26 @@
+[project]
+name = "raj-instructor-backend"
+version = "1.0.0"
+description = "Raj Instructor FastAPI service"
+requires-python = ">=3.12"
+dependencies = [
+  "alembic==1.16.5",
+  "bcrypt==4.3.0",
+  "email-validator==2.2.0",
+  "fastapi==0.116.1",
+  "httpx==0.28.1",
+  "passlib[bcrypt]==1.7.4",
+  "psycopg[binary]==3.2.9",
+  "pydantic-settings==2.10.1",
+  "python-jose[cryptography]==3.5.0",
+  "python-multipart==0.0.20",
+  "SQLAlchemy==2.0.43",
+  "stripe==12.4.0",
+  "uvicorn[standard]==0.35.0"
+]
+
+[tool.vercel]
+entrypoint = "main:app"
+
+[tool.vercel.scripts]
+build = "alembic upgrade head"

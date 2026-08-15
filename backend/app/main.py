@@ -329,7 +329,8 @@ def mark_read(notification_id: int, db: Session = Depends(get_db), account: User
 
 @app.post("/internal/reminders/run")
 def send_reminders(request: Request, db: Session = Depends(get_db)):
-    if not settings.reminder_secret or request.headers.get("x-reminder-secret") != settings.reminder_secret:
+    provided_secret = request.headers.get("x-reminder-secret") or request.headers.get("authorization", "").removeprefix("Bearer ")
+    if not settings.reminder_secret or provided_secret != settings.reminder_secret:
         raise HTTPException(401, "Invalid reminder secret")
     now = datetime.utcnow()
     student_until = now + timedelta(hours=settings.reminder_hours_before)
