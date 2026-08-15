@@ -1,15 +1,15 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import Shell from '@/components/Shell';
 import { api, user } from '@/lib/api';
 import { METRIC_GROUPS } from '@/components/FeedbackCard';
 
 export default function Instructor() {
-  const router = useRouter(); const searchParams = useSearchParams(); const [bookings, setBookings] = useState<any[]>([]); const [slots, setSlots] = useState<any[]>([]); const [selected, setSelected] = useState<any>(null); const [summary, setSummary] = useState(''); const [practice, setPractice] = useState(''); const [notes, setNotes] = useState(''); const [metrics, setMetrics] = useState<any>({}); const [start, setStart] = useState(''); const [end, setEnd] = useState(''); const [message, setMessage] = useState(''); const [loading, setLoading] = useState(true);
+  const router = useRouter(); const [bookings, setBookings] = useState<any[]>([]); const [slots, setSlots] = useState<any[]>([]); const [selected, setSelected] = useState<any>(null); const [summary, setSummary] = useState(''); const [practice, setPractice] = useState(''); const [notes, setNotes] = useState(''); const [metrics, setMetrics] = useState<any>({}); const [start, setStart] = useState(''); const [end, setEnd] = useState(''); const [message, setMessage] = useState(''); const [loading, setLoading] = useState(true);
   const refresh = async () => { const [lessonRows, availabilityRows] = await Promise.all([api('/bookings'), api('/instructor/availability')]); setBookings(lessonRows); setSlots(availabilityRows); };
   useEffect(() => { const account = user(); if (account?.role !== 'instructor' && account?.role !== 'admin') { router.replace('/dashboard'); return; } refresh().catch((error: Error) => setMessage(error.message)).finally(() => setLoading(false)); }, [router]);
-  useEffect(() => { const bookingId = Number(searchParams.get('booking')); if (bookingId) { const match = bookings.find(booking => booking.id === bookingId); if (match && !match.feedback_submitted) setSelected(match); } }, [bookings, searchParams]);
+  useEffect(() => { const bookingId = Number(new URLSearchParams(window.location.search).get('booking')); if (bookingId) { const match = bookings.find(booking => booking.id === bookingId); if (match && !match.feedback_submitted) setSelected(match); } }, [bookings]);
   async function addSlot(event: React.FormEvent) { event.preventDefault(); setMessage(''); try { await api('/instructor/availability', { method: 'POST', body: JSON.stringify({ starts_at: new Date(start).toISOString(), ends_at: new Date(end).toISOString() }) }); setStart(''); setEnd(''); setMessage('Availability added. Learners can now book this time.'); await refresh(); } catch (error: any) { setMessage(error.message); } }
   async function removeSlot(id: number) { if (!window.confirm('Remove this open availability time?')) return; try { await api(`/instructor/availability/${id}`, { method: 'DELETE' }); await refresh(); } catch (error: any) { setMessage(error.message); } }
   async function submit(event: React.FormEvent) { event.preventDefault(); if (!selected) return; try { await api(`/instructor/bookings/${selected.id}/feedback`, { method: 'POST', body: JSON.stringify({ lesson_summary: summary, agreed_practice: practice, further_notes: notes, metrics }) }); setMessage('Feedback submitted and the learner has been notified.'); setSelected(null); setSummary(''); setPractice(''); setNotes(''); setMetrics({}); await refresh(); } catch (error: any) { setMessage(error.message); } }
