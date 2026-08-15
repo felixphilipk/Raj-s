@@ -84,7 +84,7 @@ SMTP_PASSWORD=...
 SMTP_FROM=lessons@yourdomain.com
 ```
 
-To run scheduled reminders, set a long random `REMINDER_SECRET`, then have your hosting scheduler call this endpoint at least every 15 minutes:
+To run scheduled reminders, set a long random `REMINDER_SECRET`, then have a trusted scheduler call this endpoint at least every hour:
 
 ```text
 POST https://your-api-domain/internal/reminders/run
@@ -115,7 +115,6 @@ JWT_SECRET=<long-random-value>
 FRONTEND_URL=https://your-frontend-domain.vercel.app
 CORS_ORIGINS=https://your-frontend-domain.vercel.app
 REMINDER_SECRET=<long-random-value>
-CRON_SECRET=<same-value-as-REMINDER_SECRET>
 SMTP_MODE=smtp
 SMTP_HOST=...
 SMTP_PORT=587
@@ -130,9 +129,9 @@ Set the following frontend Production environment values after the backend is de
 NEXT_PUBLIC_API_URL=https://your-backend-domain.vercel.app
 ```
 
-The frontend uses normal HTTP API requests in production. The backend cron configuration invokes the reminder route hourly using `CRON_SECRET`.
+The frontend uses normal HTTP API requests in production. On Vercel Hobby, configure a Supabase Cron job that invokes the reminder route hourly using the value in Supabase Vault; do not store the secret directly in the cron command.
 
-Vercel runs the Alembic migration during the backend build. Back up an existing database before its first deployment.
+Run Alembic migrations against the production database before the first deployment. Back up an existing database first; the Vercel build does not run migrations.
 
 A practical split is:
 
