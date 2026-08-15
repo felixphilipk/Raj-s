@@ -107,7 +107,7 @@ def register_student(data: RegisterIn, db: Session = Depends(get_db)):
     db.add(learner)
     db.commit()
     db.refresh(learner)
-    email_safely(learner.email, "Welcome to Raj Instructor", "Your learner account is ready. You can now book a lesson.")
+    email_safely(learner.email, "Welcome to Raj Instructor", f"Hi {learner.first_name},\n\nYour learner account is ready. Browse instructors, choose a time that works for you, and book your next driving lesson when you are ready.")
     return {"access_token": make_token(learner), "token_type": "bearer", "user": serialize_user(learner)}
 
 @app.post("/auth/register/instructor")
@@ -120,7 +120,7 @@ def register_instructor(data: InstructorRegisterIn, db: Session = Depends(get_db
     db.add(InstructorProfile(user_id=instructor.id, bio=data.bio, teaching_areas=data.teaching_areas, vehicle=data.vehicle, licence_number=data.licence_number, languages=data.languages))
     db.commit()
     db.refresh(instructor)
-    email_safely(instructor.email, "Your Raj Instructor account is ready", "Your instructor profile is ready. Add your availability to start accepting bookings.")
+    email_safely(instructor.email, "Your Raj Instructor account is ready", f"Hi {instructor.first_name},\n\nYour instructor profile is ready. Add your availability to start accepting learner bookings.")
     return {"access_token": make_token(instructor), "token_type": "bearer", "user": serialize_user(instructor)}
 
 @app.post("/auth/login")
